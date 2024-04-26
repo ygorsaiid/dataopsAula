@@ -1,0 +1,30 @@
+version: '3'
+services:
+
+    pythonapp:
+        build: ./python/
+        command: sh -c "python3 scripts/ingestion.py"
+        environment:
+            - URL=${URL:-'https://randomuser.me/api/?results=10'}
+            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+            - MYSQL_DATABASE=${MYSQL_DATABASE:-db}
+            - MYSQL_USER=${MYSQL_USER:-root}
+        depends_on:
+          mysql:
+            condition: service_healthy
+
+    mysql:
+        restart: always
+        image: mysql:latest
+        ports:
+            - "3306:3306"
+        volumes:
+            - ./mysql/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+            MYSQL_DATABASE: ${MYSQL_DATABASE:-root}
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+            timeout: 10s
+            retries: 5
+            start_period: 10s
